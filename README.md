@@ -36,8 +36,8 @@ A Flutter application for managing product listings on an e-commerce platform. T
 1. Clone this repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/ecommerce-product-management-app.git
-cd ecommerce-product-management-app
+git clone https://github.com/Aquabet/e-commerce-platform.git
+cd e-commerce-platform
 ```
 
 2. Ensure you have Flutter installed, then get the dependencies:
