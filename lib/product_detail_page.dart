@@ -135,10 +135,10 @@ class ProductDetailPageState extends State<ProductDetailPage> {
     final dbHelper = DatabaseHelper.instance;
     await dbHelper.deleteReview(reviewId);
     _loadReviews();
-    if (mounted){
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Review deleted successfully')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Review deleted successfully')),
+      );
     }
   }
 
@@ -264,18 +264,24 @@ class ProductDetailPageState extends State<ProductDetailPage> {
                   const Text('Rating:'),
                   const SizedBox(width: 8),
                   DropdownButton<int>(
-                    value: _selectedRating,
-                    items: [1, 2, 3, 4, 5]
-                        .map((value) => DropdownMenuItem<int>(
-                              value: value,
-                              child: Text(value.toString()),
+                    value: _categories.isEmpty ||
+                            !_categories.any((category) =>
+                                category.id == _selectedCategoryId)
+                        ? null
+                        : _selectedCategoryId,
+                    items: _categories
+                        .map((category) => DropdownMenuItem<int>(
+                              value: category.id,
+                              child: Text(category.name),
                             ))
                         .toList(),
                     onChanged: (value) {
                       setState(() {
-                        _selectedRating = value!;
+                        _selectedCategoryId = value;
+                        _categoryController.clear();
                       });
                     },
+                    hint: const Text('Select Category'),
                   ),
                 ],
               ),
