@@ -91,3 +91,7 @@ flutter run
 ## Contributing
 
 Pull requests and issue reports are welcome to help improve this project. Feel free to reach out with suggestions or questions.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE file](https://github.com/Aquabet/e-commerce-platform/blob/main/LICENSE) for details.
