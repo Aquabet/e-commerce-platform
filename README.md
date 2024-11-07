@@ -1,5 +1,9 @@
 # E-Commerce Product Management App
 
+INFO6350 13224 Smartphones-Based Web Devlpmnt SEC 02 Fall 2024
+
+---
+
 A Flutter application for managing product listings on an e-commerce platform. This app allows users to add, view, update, and delete products, with filtering options based on category and favorite status. Users can also add reviews to products with ratings.
 
 ## Key Features
