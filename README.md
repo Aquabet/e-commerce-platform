@@ -29,6 +29,7 @@ A Flutter application for managing product listings on an e-commerce platform. T
 │   │   ├── category.dart           # Category model
 │   │   └── review.dart             # Review model
 └── README.md                       # Project documentation
+```
 
 ## Installation and Running the App
 
