@@ -103,6 +103,9 @@ class DatabaseHelper {
   Future<List<Product>> fetchProductsWithFilters({
     int? categoryId,
     bool showOnlyFavorites = false,
+    String? query,
+    int page = 0,
+    int pageSize = 10,
   }) async {
     final db = await instance.database;
     String sql = 'SELECT * FROM products WHERE 1=1';
@@ -116,6 +119,14 @@ class DatabaseHelper {
     if (showOnlyFavorites) {
       sql += ' AND is_favorite = 1';
     }
+
+    if (query != null && query.isNotEmpty) {
+      sql += ' AND name LIKE ?';
+      args.add('%$query%');
+    }
+
+    sql += ' LIMIT ? OFFSET ?';
+    args.addAll([pageSize, page * pageSize]);
 
     final result = await db.rawQuery(sql, args);
     return result.map((json) => Product.fromMap(json)).toList();
