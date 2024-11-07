@@ -7,13 +7,13 @@ import 'models/category.dart';
 class ProductDetailPage extends StatefulWidget {
   final Product? product;
 
-  const ProductDetailPage({Key? key, this.product}) : super(key: key);
+  const ProductDetailPage({super.key, this.product});
 
   @override
-  _ProductDetailPageState createState() => _ProductDetailPageState();
+  ProductDetailPageState createState() => ProductDetailPageState();
 }
 
-class _ProductDetailPageState extends State<ProductDetailPage> {
+class ProductDetailPageState extends State<ProductDetailPage> {
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
   final _reviewController = TextEditingController();
@@ -23,7 +23,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   late Product _product;
   List<Category> _categories = [];
   int? _selectedCategoryId;
-  int _selectedRating = 5; // 默认评分
+  int _selectedRating = 5;
 
   @override
   void initState() {
@@ -61,8 +61,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Future<void> _saveProduct() async {
     final dbHelper = DatabaseHelper.instance;
-    
-    // 如果新类别输入不为空，则插入或查找类别
+
     if (_categoryController.text.isNotEmpty) {
       _selectedCategoryId =
           await dbHelper.insertOrFindCategory(_categoryController.text);
@@ -81,14 +80,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } else {
       await dbHelper.updateProduct(_product);
     }
-    
-    // 更新后清理无产品的类别
+
     await dbHelper.deleteEmptyCategories();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isNewProduct ? 'Product added successfully' : 'Product updated successfully'),
+          content: Text(_isNewProduct
+              ? 'Product added successfully'
+              : 'Product updated successfully'),
         ),
       );
       Navigator.pop(context, true);
@@ -100,21 +100,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final newReview = Review(
       productId: _product.id!,
       reviewText: _reviewController.text,
-      rating: _selectedRating, // 使用用户选择的评分
+      rating: _selectedRating,
     );
     await dbHelper.insertReview(newReview);
     _reviewController.clear();
-    _selectedRating = 5; // 重置评分为默认值
-    _loadReviews(); // 重新加载评论
+    _selectedRating = 5;
+    _loadReviews();
   }
 
   Future<void> _updateReview(Review review) async {
     final dbHelper = DatabaseHelper.instance;
     await dbHelper.updateReview(review);
     _loadReviews();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Review updated successfully')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Review updated successfully')),
+      );
+    }
   }
 
   Future<void> _deleteProduct() async {
@@ -133,14 +135,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final dbHelper = DatabaseHelper.instance;
     await dbHelper.deleteReview(reviewId);
     _loadReviews();
+    if (mounted){
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Review deleted successfully')),
     );
+    }
   }
 
   void _showEditReviewDialog(Review review) {
     final reviewController = TextEditingController(text: review.reviewText);
-    final ratingController = TextEditingController(text: review.rating.toString());
+    final ratingController =
+        TextEditingController(text: review.rating.toString());
 
     showDialog(
       context: context,
@@ -233,7 +238,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
             TextField(
               controller: _categoryController,
-              decoration: const InputDecoration(labelText: 'Or Add New Category'),
+              decoration:
+                  const InputDecoration(labelText: 'Or Add New Category'),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -301,7 +307,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.edit),
-                                  onPressed: () => _showEditReviewDialog(review),
+                                  onPressed: () =>
+                                      _showEditReviewDialog(review),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.delete),
