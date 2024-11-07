@@ -49,6 +49,10 @@ class ProductDetailPageState extends State<ProductDetailPage> {
     final categories = await dbHelper.fetchCategories();
     setState(() {
       _categories = categories;
+      if (_selectedCategoryId != null &&
+          !_categories.any((category) => category.id == _selectedCategoryId)) {
+        _selectedCategoryId = null;
+      }
     });
   }
 
@@ -61,6 +65,16 @@ class ProductDetailPageState extends State<ProductDetailPage> {
 
   Future<void> _saveProduct() async {
     final dbHelper = DatabaseHelper.instance;
+
+    if (_selectedCategoryId == null && _categoryController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a category or enter a new one.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     if (_categoryController.text.isNotEmpty) {
       _selectedCategoryId =
@@ -221,13 +235,17 @@ class ProductDetailPageState extends State<ProductDetailPage> {
             ),
             const SizedBox(height: 16),
             DropdownButton<int>(
-              value: _selectedCategoryId,
-              items: _categories
-                  .map((category) => DropdownMenuItem<int>(
-                        value: category.id,
-                        child: Text(category.name),
-                      ))
-                  .toList(),
+              value: _categories.isNotEmpty &&
+                      _categories
+                          .any((category) => category.id == _selectedCategoryId)
+                  ? _selectedCategoryId
+                  : null,
+              items: _categories.map((category) {
+                return DropdownMenuItem<int>(
+                  value: category.id,
+                  child: Text(category.name),
+                );
+              }).toList(),
               onChanged: (value) {
                 setState(() {
                   _selectedCategoryId = value;
@@ -264,17 +282,17 @@ class ProductDetailPageState extends State<ProductDetailPage> {
                   const Text('Rating:'),
                   const SizedBox(width: 8),
                   DropdownButton<int>(
-                    value: _categories.isEmpty ||
-                            !_categories.any((category) =>
+                    value: _categories.isNotEmpty &&
+                            _categories.any((category) =>
                                 category.id == _selectedCategoryId)
-                        ? null
-                        : _selectedCategoryId,
-                    items: _categories
-                        .map((category) => DropdownMenuItem<int>(
-                              value: category.id,
-                              child: Text(category.name),
-                            ))
-                        .toList(),
+                        ? _selectedCategoryId
+                        : null,
+                    items: _categories.map((category) {
+                      return DropdownMenuItem<int>(
+                        value: category.id,
+                        child: Text(category.name),
+                      );
+                    }).toList(),
                     onChanged: (value) {
                       setState(() {
                         _selectedCategoryId = value;
@@ -282,7 +300,7 @@ class ProductDetailPageState extends State<ProductDetailPage> {
                       });
                     },
                     hint: const Text('Select Category'),
-                  ),
+                  )
                 ],
               ),
               ElevatedButton(
