@@ -30,7 +30,8 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         price REAL NOT NULL,
         category_id INTEGER NOT NULL,
-        is_favorite INTEGER NOT NULL
+        is_favorite INTEGER NOT NULL,
+        FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
       )
     ''');
     await db.execute('CREATE INDEX idx_product_name ON products (name);');
@@ -38,7 +39,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL
+        name TEXT NOT NULL UNIQUE
       )
     ''');
 
@@ -90,17 +91,58 @@ class DatabaseHelper {
 
   Future<int> deleteProduct(int id) async {
     final db = await instance.database;
-    return await db.delete(
+    final result = await db.delete(
       'products',
       where: 'id = ?',
       whereArgs: [id],
     );
+    await deleteEmptyCategories();
+    return result;
+  }
+
+  Future<List<Product>> fetchProductsWithFilters({
+    int? categoryId,
+    bool showOnlyFavorites = false,
+  }) async {
+    final db = await instance.database;
+    String sql = 'SELECT * FROM products WHERE 1=1';
+    List<dynamic> args = [];
+
+    if (categoryId != null) {
+      sql += ' AND category_id = ?';
+      args.add(categoryId);
+    }
+
+    if (showOnlyFavorites) {
+      sql += ' AND is_favorite = 1';
+    }
+
+    final result = await db.rawQuery(sql, args);
+    return result.map((json) => Product.fromMap(json)).toList();
   }
 
   // Category CRUD operations
-  Future<int> insertCategory(Category category) async {
+  Future<int> insertOrFindCategory(String categoryName) async {
     final db = await instance.database;
-    return await db.insert('categories', category.toMap());
+    final result = await db.query(
+      'categories',
+      where: 'name = ?',
+      whereArgs: [categoryName],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first['id'] as int;
+    } else {
+      return await db.insert('categories', {'name': categoryName});
+    }
+  }
+
+  Future<void> deleteEmptyCategories() async {
+    final db = await instance.database;
+    await db.delete(
+      'categories',
+      where: 'id NOT IN (SELECT DISTINCT category_id FROM products)',
+    );
   }
 
   Future<List<Category>> fetchCategories() async {
@@ -142,25 +184,6 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
-  }
-
-  Future<void> insertSampleData() async {
-    final db = await instance.database;
-    final existingProducts = await db.query('products');
-    if (existingProducts.isNotEmpty) return;
-    int categoryId = await db.insert('categories', {'name': 'Electronics'});
-    await db.insert('products', {
-      'name': 'Smartphone',
-      'price': 699.99,
-      'category_id': categoryId,
-      'is_favorite': 0,
-    });
-    await db.insert('products', {
-      'name': 'Laptop',
-      'price': 999.99,
-      'category_id': categoryId,
-      'is_favorite': 1,
-    });
   }
 
   Future close() async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'models/product.dart';
 import 'models/review.dart';
+import 'models/category.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product? product;
@@ -16,9 +17,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
   final _reviewController = TextEditingController();
+  final _categoryController = TextEditingController();
   late Future<List<Review>> _reviews;
   late bool _isNewProduct;
   late Product _product;
+  List<Category> _categories = [];
+  int? _selectedCategoryId;
   int _selectedRating = 5; // 默认评分
 
   @override
@@ -32,10 +36,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           categoryId: 1,
           isFavorite: false,
         );
-
     _nameController.text = _product.name;
     _priceController.text = _product.price.toString();
+    _selectedCategoryId = _product.categoryId;
+
+    _loadCategories();
     if (!_isNewProduct) _loadReviews();
+  }
+
+  void _loadCategories() async {
+    final dbHelper = DatabaseHelper.instance;
+    final categories = await dbHelper.fetchCategories();
+    setState(() {
+      _categories = categories;
+    });
   }
 
   void _loadReviews() {
@@ -47,11 +61,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Future<void> _saveProduct() async {
     final dbHelper = DatabaseHelper.instance;
+    
+    // 如果新类别输入不为空，则插入或查找类别
+    if (_categoryController.text.isNotEmpty) {
+      _selectedCategoryId =
+          await dbHelper.insertOrFindCategory(_categoryController.text);
+    }
+
     _product = Product(
       id: _isNewProduct ? null : _product.id,
       name: _nameController.text,
       price: double.tryParse(_priceController.text) ?? _product.price,
-      categoryId: _product.categoryId,
+      categoryId: _selectedCategoryId!,
       isFavorite: _product.isFavorite,
     );
 
@@ -60,10 +81,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } else {
       await dbHelper.updateProduct(_product);
     }
+    
+    // 更新后清理无产品的类别
+    await dbHelper.deleteEmptyCategories();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_isNewProduct ? 'Product added successfully' : 'Product updated successfully')),
+        SnackBar(
+          content: Text(_isNewProduct ? 'Product added successfully' : 'Product updated successfully'),
+        ),
       );
       Navigator.pop(context, true);
     }
@@ -187,6 +213,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               controller: _priceController,
               decoration: const InputDecoration(labelText: 'Price'),
               keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            DropdownButton<int>(
+              value: _selectedCategoryId,
+              items: _categories
+                  .map((category) => DropdownMenuItem<int>(
+                        value: category.id,
+                        child: Text(category.name),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedCategoryId = value;
+                  _categoryController.clear();
+                });
+              },
+              hint: const Text('Select Category'),
+            ),
+            TextField(
+              controller: _categoryController,
+              decoration: const InputDecoration(labelText: 'Or Add New Category'),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
