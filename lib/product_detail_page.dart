@@ -158,27 +158,47 @@ class ProductDetailPageState extends State<ProductDetailPage> {
 
   void _showEditReviewDialog(Review review) {
     final reviewController = TextEditingController(text: review.reviewText);
-    final ratingController =
-        TextEditingController(text: review.rating.toString());
+    int selectedRating = review.rating;
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Edit Review'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: reviewController,
-                decoration: const InputDecoration(labelText: 'Review Text'),
-              ),
-              TextField(
-                controller: ratingController,
-                decoration: const InputDecoration(labelText: 'Rating (1-5)'),
-                keyboardType: TextInputType.number,
-              ),
-            ],
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: reviewController,
+                    decoration: const InputDecoration(labelText: 'Review Text'),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Text('Rating:'),
+                      const SizedBox(width: 8),
+                      DropdownButton<int>(
+                        value: selectedRating,
+                        items: [1, 2, 3, 4, 5].map((rating) {
+                          return DropdownMenuItem<int>(
+                            value: rating,
+                            child: Text(rating.toString()),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedRating = value ?? review.rating;
+                          });
+                        },
+                        hint: const Text('Select Rating'),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
           actions: [
             TextButton(
@@ -193,7 +213,7 @@ class ProductDetailPageState extends State<ProductDetailPage> {
                   id: review.id,
                   productId: review.productId,
                   reviewText: reviewController.text,
-                  rating: int.tryParse(ratingController.text) ?? review.rating,
+                  rating: selectedRating,
                 );
                 _updateReview(updatedReview);
                 Navigator.pop(context);
@@ -282,24 +302,19 @@ class ProductDetailPageState extends State<ProductDetailPage> {
                   const Text('Rating:'),
                   const SizedBox(width: 8),
                   DropdownButton<int>(
-                    value: _categories.isNotEmpty &&
-                            _categories.any((category) =>
-                                category.id == _selectedCategoryId)
-                        ? _selectedCategoryId
-                        : null,
-                    items: _categories.map((category) {
+                    value: _selectedRating,
+                    items: [1, 2, 3, 4, 5].map((rating) {
                       return DropdownMenuItem<int>(
-                        value: category.id,
-                        child: Text(category.name),
+                        value: rating,
+                        child: Text(rating.toString()),
                       );
                     }).toList(),
                     onChanged: (value) {
                       setState(() {
-                        _selectedCategoryId = value;
-                        _categoryController.clear();
+                        _selectedRating = value ?? 5;
                       });
                     },
-                    hint: const Text('Select Category'),
+                    hint: const Text('Select Rating'),
                   )
                 ],
               ),

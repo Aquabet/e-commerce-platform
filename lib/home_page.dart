@@ -25,6 +25,9 @@ class _HomePageState extends State<HomePage> {
   String _searchQuery = '';
   bool _isLoading = false;
   bool _hasMore = true;
+  bool _isFabVisible = true;
+  bool _isFilterVisible = false;
+  double _previousScrollOffset = 0;
 
   @override
   void initState() {
@@ -72,6 +75,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onScroll() {
+    if (_scrollController.offset > _previousScrollOffset && _isFabVisible) {
+      setState(() => _isFabVisible = false);
+    } else if (_scrollController.offset < _previousScrollOffset &&
+        !_isFabVisible) {
+      setState(() => _isFabVisible = true);
+    }
+    _previousScrollOffset = _scrollController.offset;
+
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent * 0.9 &&
         !_isLoading) {
@@ -119,78 +130,111 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _deleteProduct(Product product) async {
+    await widget.dbHelper.deleteProduct(product.id!);
+    _refreshProducts();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Product "${product.name}" deleted')),
+    );
+  }
+
+  void _showDeleteDialog(Product product) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Confirm Delete"),
+          content: Text('Are you sure you want to delete "${product.name}"?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteProduct(product);
+              },
+              child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Product List'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProductDetailPage(),
-                ),
-              );
-              if (result == true) {
-                _refreshProducts();
-              }
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Column(
+            child: Row(
               children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    labelText: 'Search Products',
-                    suffixIcon: Icon(Icons.search),
-                  ),
-                  onChanged: (value) => _onSearchChanged(),
+                IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: () {
+                    setState(() {
+                      _isFilterVisible = !_isFilterVisible;
+                    });
+                  },
                 ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButton<int?>(
-                        value: _selectedCategoryId,
-                        hint: const Text('Select Category'),
-                        items: [
-                          const DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text('All Categories'),
-                          ),
-                          ..._categories.map((category) {
-                            return DropdownMenuItem<int?>(
-                              value: category.id,
-                              child: Text(category.name),
-                            );
-                          }),
-                        ],
-                        onChanged: _onCategorySelected,
-                      ),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      labelText: 'Search Products',
+                      suffixIcon: Icon(Icons.search),
                     ),
-                    const SizedBox(width: 16),
-                    Row(
-                      children: [
-                        const Text('Only Favorites'),
-                        Checkbox(
-                          value: _showOnlyFavorites,
-                          onChanged: _onFavoriteFilterChanged,
-                        ),
-                      ],
-                    ),
-                  ],
+                    onChanged: (value) => _onSearchChanged(),
+                  ),
                 ),
               ],
             ),
           ),
+          if (_isFilterVisible)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButton<int?>(
+                      value: _selectedCategoryId,
+                      hint: const Text('Select Category'),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('All Categories'),
+                        ),
+                        ..._categories.map((category) {
+                          return DropdownMenuItem<int?>(
+                            value: category.id,
+                            child: Text(category.name),
+                          );
+                        }),
+                      ],
+                      onChanged: _onCategorySelected,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Row(
+                    children: [
+                      const Text('Only Favorites'),
+                      Checkbox(
+                        value: _showOnlyFavorites,
+                        onChanged: _onFavoriteFilterChanged,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refreshProducts,
@@ -235,6 +279,9 @@ class _HomePageState extends State<HomePage> {
                         _refreshProducts();
                       }
                     },
+                    onLongPress: () {
+                      _showDeleteDialog(product);
+                    },
                   );
                 },
               ),
@@ -242,6 +289,30 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+      floatingActionButton: _isFabVisible
+          ? SizedBox(
+              width: 80,
+              height: 80,
+              child: FloatingActionButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProductDetailPage(),
+                    ),
+                  );
+                  if (result == true) {
+                    _refreshProducts();
+                  }
+                },
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: const CircleBorder(),
+                heroTag: null,
+                child: const Icon(Icons.add, size: 50),
+              ),
+            )
+          : null,
     );
   }
 }
